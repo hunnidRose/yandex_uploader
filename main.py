@@ -1,7 +1,26 @@
 import datetime
 import json
 import logging
+import os
 import requests
+
+# Получаем текущие дату и время для именования файлов в папке info
+current_time = datetime.datetime.now()
+year = current_time.year
+month = current_time.month
+day = current_time.day
+hour = current_time.hour
+minute = current_time.minute
+second = current_time.second
+time_for_name = f'{year}_{month:02}_{day:02}_{hour:02}_{minute:02}_{second:02}'
+
+# Получаем расположение папки info
+current_path = os.getcwd()
+info_path = os.path.join(current_path, 'info', f'info_{time_for_name}.json')
+
+# Список для добавления в него информации по загруженным
+# файлам и преобразования его в json-файл
+info_list = []
 
 # Получаем список всех существующих пород
 all_breeds_url = 'https://dog.ceo/api/breeds/list/all'
@@ -68,6 +87,7 @@ if all_breeds_list['message'][breed.lower()]:
         if image_name not in folder_file_names:
             requests.post(yandex_base_url + '/v1/disk/resources/upload',
                             params=params, headers=headers)
+            info_list.append({'file_name': image_name})
 else:
     response = requests.get(f'{dog_base_url}images/random')
     image_url = response.json()['message']
@@ -76,5 +96,12 @@ else:
         'path': f'{breed.capitalize()}/{image_name}',
         'url': image_url
     }
-    requests.post(yandex_base_url + '/v1/disk/resources/upload',
-                  params=params, headers=headers)
+    if image_name not in folder_file_names:
+        requests.post(yandex_base_url + '/v1/disk/resources/upload',
+                      params=params, headers=headers)
+        info_list.append({'file_name': image_name})
+
+# Создаем json-файл в папке info
+if info_list:
+    with open(info_path, 'w', encoding='utf-8') as file:
+        json.dump(info_list, file, ensure_ascii=False, indent=2)
