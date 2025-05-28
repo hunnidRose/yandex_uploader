@@ -4,6 +4,10 @@ import logging
 import os
 import requests
 
+# Настройка логирования
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Получаем текущие дату и время для именования файлов в папке info
 current_time = datetime.datetime.now()
 year = current_time.year
@@ -75,8 +79,11 @@ for item in folder_items:
 # Загружаем случайное изображение породы в созданную папку
 headers['Content-Type'] = 'application/json'
 dog_base_url = f'https://dog.ceo/api/breed/{breed.lower()}/'
-if all_breeds_list['message'][breed.lower()]:
-    for sub_breed in all_breeds_list['message'][breed.lower()]:
+sub_breeds_list = all_breeds_list['message'][breed.lower()]
+if sub_breeds_list:
+    counter = 0
+    logging.info('Загружаю изображения на Диск...')
+    for idx, sub_breed in enumerate(sub_breeds_list, 1):
         response = requests.get(f'{dog_base_url}{sub_breed}/images/random')
         image_url = response.json()['message']
         image_name = f'{sub_breed}_{breed.lower()}_{image_url.split('/')[-1]}'
@@ -87,8 +94,18 @@ if all_breeds_list['message'][breed.lower()]:
         if image_name not in folder_file_names:
             requests.post(yandex_base_url + '/v1/disk/resources/upload',
                             params=params, headers=headers)
+            counter += 1
+            logging.info(f'[{idx}/{len(sub_breeds_list)}] '
+                            f'{image_name}[Статус: Успешно загружено]')
             info_list.append({'file_name': image_name})
+        else:
+            logging.warning(f'[{idx}/{len(sub_breeds_list)}] '
+                            f'{image_name}[Статус: Отменено]'
+                            f'[Причина: Данное изображение уже на Диске]')
+    logging.info(f'Успешно загружено '
+                    f'{counter}/{len(sub_breeds_list)} изображений')
 else:
+    logging.info('Загружаю изображение на Диск...')
     response = requests.get(f'{dog_base_url}images/random')
     image_url = response.json()['message']
     image_name = f'{breed.lower()}_{image_url.split('/')[-1]}'
@@ -99,9 +116,19 @@ else:
     if image_name not in folder_file_names:
         requests.post(yandex_base_url + '/v1/disk/resources/upload',
                       params=params, headers=headers)
+        logging.info(f'{image_name}[Статус: Успешно загружено]')
         info_list.append({'file_name': image_name})
+    else:
+        logging.warning(f'{image_name}[Статус: Отменено]'
+                        f'[Причина: Данное изображение уже на Диске]')
 
 # Создаем json-файл в папке info
+file_name = f'info_{time_for_name}.json'
+logging.info('Создаю json с информацией по загрузке...')
 if info_list:
     with open(info_path, 'w', encoding='utf-8') as file:
         json.dump(info_list, file, ensure_ascii=False, indent=2)
+    logging.info(f'{file_name}[Статус: Создан]')
+else:
+    logging.warning(f'{file_name}[Статус: Отменен]'
+                    f'[Причина: Отсутствуют данные для записи]')
