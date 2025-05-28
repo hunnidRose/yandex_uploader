@@ -93,17 +93,17 @@ if sub_breeds_list:
         }
         if image_name not in folder_file_names:
             requests.post(yandex_base_url + '/v1/disk/resources/upload',
-                            params=params, headers=headers)
+                          params=params, headers=headers)
             counter += 1
             logging.info(f'[{idx}/{len(sub_breeds_list)}] '
-                            f'{image_name}[Статус: Успешно загружено]')
+                         f'{image_name}[Статус: Успешно загружено]')
             info_list.append({'file_name': image_name})
         else:
             logging.warning(f'[{idx}/{len(sub_breeds_list)}] '
                             f'{image_name}[Статус: Отменено]'
                             f'[Причина: Данное изображение уже на Диске]')
     logging.info(f'Успешно загружено '
-                    f'{counter}/{len(sub_breeds_list)} изображений')
+                 f'{counter}/{len(sub_breeds_list)} изображений')
 else:
     logging.info('Загружаю изображение на Диск...')
     response = requests.get(f'{dog_base_url}images/random')
